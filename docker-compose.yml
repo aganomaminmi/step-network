@@ -1,0 +1,17 @@
+version: '3.8'
+services:
+  mysql:
+    platform: linux/x86_64
+    image: mysql:5.7
+    container_name: step_network_mysql
+    environment:
+      MYSQL_DATABASE: step_network_db
+      MYSQL_ROOT_PASSWORD: password
+    volumes:
+      - step_network_mysql_data:/var/lib/mysql
+    ports:
+      - 3306:3306
+
+volumes:
+  step_network_mysql_data:
+
