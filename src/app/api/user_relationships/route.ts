@@ -5,14 +5,13 @@ import dayjs from "dayjs";
 const prisma = new PrismaClient();
 
 export async function GET() {
-  const users = getAllUsers();
+  const users = await getAllUsers();
   return NextResponse.json({ users });
 }
 
 export const POST = async (request: NextRequest) => {
   const allUsers = await getAllUsers();
 
-  console.log(allUsers);
   const scores: {
     targetUserId: number;
     fromUserId: number;
@@ -100,31 +99,52 @@ export const POST = async (request: NextRequest) => {
     doneUsers.push(user);
   });
 
-  await Promise.all(
+  await Promise.all<void>(
     scores.map(
       (score) =>
         new Promise(async (resolve) => {
-          let exist = await prisma.userRelationship.findFirst({
-            where: {
+          await Promise.all([
+            new Promise<void>(async (resolve) => {
+              const exist = await prisma.userRelationship.findFirst({
+                where: {
+                  from_user_id: score.fromUserId,
+                  target_user_id: score.targetUserId,
+                },
+              });
+              if (exist) {
+                await prisma.userRelationship.delete({
+                  where: {
+                    id: exist.id,
+                  },
+                });
+              }
+              resolve();
+            }),
+            new Promise<void>(async (resolve) => {
+              const exist = await prisma.userRelationship.findFirst({
+                where: {
+                  from_user_id: score.targetUserId,
+                  target_user_id: score.fromUserId,
+                },
+              });
+              if (exist) {
+                await prisma.userRelationship.delete({
+                  where: {
+                    id: exist.id,
+                  },
+                });
+              }
+              resolve();
+            }),
+          ]);
+          await prisma.userRelationship.create({
+            data: {
               from_user_id: score.fromUserId,
               target_user_id: score.targetUserId,
+              score: score.score,
             },
           });
-          if (exist) {
-            await prisma.userRelationship.delete({
-              where: {
-                id: exist.id,
-              },
-            });
-          }
-          const exist2 = await prisma.userRelationship.findFirst({
-            where: {
-              from_user_id: score.targetUserId,
-              target_user_id: score.fromUserId,
-            },
-          });
-          if (exist2) {
-          }
+          resolve();
         })
     )
   );

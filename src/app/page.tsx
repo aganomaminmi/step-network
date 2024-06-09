@@ -1,4 +1,4 @@
-"use client";
+"use client"
 
 import { ChangeEventHandler, useEffect, useState } from "react";
 import { parse } from "papaparse";
@@ -16,11 +16,10 @@ export default function Home() {
 
   useEffect(() => {
     fetch("/api/users", {
-      method: "POST",
+      method: "GET",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ name, csv: stepData }),
     }).then((res: any) => {
       res.json().then((data: any) => {
         setUsers(data);
@@ -78,6 +77,16 @@ export default function Home() {
     });
 
     const user = await response.json();
+
+    const res = await fetch("/api/users", {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    })
+    const users = await res.json()
+    setUsers(users);
+
     setLoading(false);
     setResponse(user);
   };
@@ -91,6 +100,9 @@ export default function Home() {
       },
     });
 
+    const data = await response.json();
+
+    setResponse(data);
     setLoading(false);
   };
 

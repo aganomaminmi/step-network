@@ -14,8 +14,8 @@ datasource db {
 }
 
 model User {
-  id          Int                @default(autoincrement()) @id
-  name        String
+  id          Int                @default(autoincrement()) @id @unique
+  name        String             @unique
 
   steps       Step[]
   from_user   UserRelationship[] @relation("from_user")
@@ -37,6 +37,7 @@ model UserRelationship {
   id             Int  @default(autoincrement()) @id
   from_user_id   Int
   target_user_id Int
+  score          Int
 
   from_user      User @relation("from_user", fields: [from_user_id], references: [id])
   target_user    User @relation("target_user", fields: [target_user_id], references: [id])

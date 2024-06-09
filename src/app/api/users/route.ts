@@ -4,7 +4,7 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 export async function GET() {
-  const users = getAllUsers();
+  const users = await getAllUsers();
   return NextResponse.json({ users });
 }
 
@@ -22,14 +22,21 @@ interface UsersPostResponse {}
 export const POST = async (request: NextRequest) => {
   const { name, csv } = (await request.json()) as UsersPostBody;
 
+  if (!name) {
+    throw new Error("Name is required");
+  }
+
   const exist = await prisma.user.findFirst({ where: { name } });
   if (exist) {
     await prisma.step.deleteMany({ where: { user_id: exist.id } });
-    await prisma.user.delete({ where: { id: exist.id } });
   }
 
-  const user = await prisma.user.create({
-    data: {
+  const user = await prisma.user.upsert({
+    where: {
+      name,
+    },
+    update: {},
+    create: {
       name,
     },
   });
