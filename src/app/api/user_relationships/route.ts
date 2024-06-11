@@ -5,8 +5,8 @@ import dayjs from "dayjs";
 const prisma = new PrismaClient();
 
 export async function GET() {
-  const users = await getAllUsers();
-  return NextResponse.json({ users });
+  const relationship = await getAllUserRelationships();
+  return NextResponse.json({ relationship });
 }
 
 export const POST = async (request: NextRequest) => {
@@ -24,20 +24,48 @@ export const POST = async (request: NextRequest) => {
       .filter((u) => u.id !== user.id)
       .filter((user) => !doneUsers.some((su) => su.id === user.id))
       .forEach((targetUser) => {
+        // R二乗値計算
         const userSteps = user.steps;
         const targetUserSteps = targetUser.steps;
 
-        const steps = userSteps.map((step, index) => {
-          const targetStep = targetUserSteps[index];
+        const startIndex = userSteps.findIndex((fStep) =>
+          dayjs(fStep.datetime).isSame(targetUserSteps[0].datetime)
+        );
+        const fastStartIndex = targetUserSteps.findIndex((fStep) =>
+          dayjs(fStep.datetime).isSame(userSteps[0].datetime)
+        );
+        const steps = userSteps.flatMap((step, index) => {
+          const targetStep = startIndex > 0
+            ? targetUserSteps[index - startIndex]
+            : targetUserSteps[index + fastStartIndex];
+          if (!targetStep) {
+            return [];
+          }
           if (!dayjs(step.datetime).isSame(targetStep.datetime)) {
+            // console.log(user.name, targetUser.name, step.datetime, targetStep.datetime, startIndex)
+            console.log(step.datetime, targetStep.datetime)
             throw new Error("Datetime is not equal");
           }
 
-          return {
-            child: (step.step - targetStep.step) ** 2,
-            parent: step.step ** 2 + targetStep.step ** 2,
-          };
+          return [
+            {
+              child: (step.step - targetStep.step) ** 2,
+              parent: step.step ** 2 + targetStep.step ** 2,
+            },
+          ];
         });
+
+        // const steps = userSteps.flatMap((step) => {
+        //   const targetStep = targetUserSteps.find((fs) => dayjs(fs.datetime).isSame(step.datetime));
+        //   if (!targetStep) {
+        //     throw new Error("Datetime is not equal");
+        //   }
+
+        //   return {
+        //     child: (step.step - targetStep.step) ** 2,
+        //     parent: step.step ** 2 + targetStep.step ** 2,
+        //   };
+        // });
 
         const coefficentsData = steps.flatMap((_, index) => {
           const windowSize = 60;
@@ -95,6 +123,7 @@ export const POST = async (request: NextRequest) => {
           fromUserId: user.id,
           score,
         });
+        // R二乗値計算ここまで
       });
     doneUsers.push(user);
   });
@@ -169,4 +198,9 @@ async function getAllUsers() {
     },
   });
   return users;
+}
+
+async function getAllUserRelationships() {
+  const userRelationships = await prisma.userRelationship.findMany();
+  return userRelationships;
 }

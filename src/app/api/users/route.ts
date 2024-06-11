@@ -8,11 +8,6 @@ export async function GET() {
   return NextResponse.json({ users });
 }
 
-export interface User {
-  id: number;
-  name: string;
-}
-
 export type StepData = { datetime: string; step: number };
 interface UsersPostBody {
   name: string;
@@ -41,11 +36,15 @@ export const POST = async (request: NextRequest) => {
     },
   });
 
-  for (const step of csv) {
-    await prisma.step.create({
-      data: { user: { connect: { id: user.id } }, ...step },
-    });
-  }
+  await prisma.step.createMany({
+    data: csv.map((step) => ({ user_id: user.id, ...step })),
+  })
+
+  // for (const step of csv) {
+  //   await prisma.step.create({
+  //     data: { user: { connect: { id: user.id } }, ...step },
+  //   });
+  // }
 
   return NextResponse.json({ user } as UsersPostResponse);
 };
