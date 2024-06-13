@@ -1,4 +1,4 @@
-"use client";
+'use client'
 
 import { useEffect, useMemo, useState } from "react";
 import { User, UserRelationship } from "@prisma/client";
@@ -8,6 +8,7 @@ import {
   LayoutOptions,
   NodeDataDefinition,
 } from "cytoscape";
+import { map } from "@/lib/utils/map";
 
 export default function Home() {
   const [users, setUsers] = useState<User[]>([]);
@@ -45,6 +46,7 @@ export default function Home() {
     const nodes: { data: NodeDataDefinition }[] = users.map((user) => ({
       data: { id: String(user.id), label: user.name },
       style: {
+        position: { x: 200, y: 200 },
         backgroundColor: user.name.includes("A")
           ? "red"
           : user.name.includes("B")
@@ -60,12 +62,15 @@ export default function Home() {
           target: rel.target_user_id,
           label: rel.score.toString(),
         },
+        style: {
+          width: map(rel.score, 1, 300, 1, 4),
+
+        }
       }));
     return CytoscapeComponent.normalizeElements({ nodes: nodes, edges });
   }, [users, relationship]);
 
   useEffect(() => {
-    console.log("?");
     setLayout({ name: "null" });
     setLayout({ name: "breadthfirst" });
   }, [elements]);
@@ -95,7 +100,7 @@ export default function Home() {
 
   return (
     <main>
-      {elements.length > 0 && (
+      {elements && elements.length > 0 && (
         <CytoscapeComponent
           elements={elements}
           style={{ height: "200vh", width: "200vw" }}
